@@ -4,9 +4,9 @@
  * Main Layout - Layout principal para páginas autenticadas/públicas
  */
 
-import { ReactNode } from 'react';
+import { ReactNode, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Home,
   Search,
@@ -22,6 +22,7 @@ import {
   MessageCircle,
   ChevronDown,
   Grid3X3,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import { useAppSelector, useAppDispatch } from '@/lib/store/hooks';
 import { logout } from '@/lib/store/slices/auth.slice';
 
@@ -43,7 +45,13 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const dispatch = useAppDispatch();
+
+  // AIDEV-NOTE: Estado para controlar a busca expansível
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const { totalItems } = useAppSelector((state) => state.cart);
@@ -58,6 +66,43 @@ export function MainLayout({ children }: MainLayoutProps) {
   const handleLogout = () => {
     dispatch(logout());
   };
+
+  // AIDEV-NOTE: Handlers para busca
+  const handleSearchToggle = () => {
+    setIsSearchOpen(!isSearchOpen);
+    if (!isSearchOpen) {
+      // Foca no input quando abre
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`${tenantPrefix}/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setIsSearchOpen(false);
+      setSearchQuery('');
+    }
+  };
+
+  // Fecha busca ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (isSearchOpen && !target.closest('[data-search-container]')) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isSearchOpen]);
 
   // AIDEV-NOTE: Itens de navegação simples (sem submenu) - usado no desktop após o dropdown de Categorias
   const simpleNavItems = [
@@ -141,24 +186,32 @@ export function MainLayout({ children }: MainLayoutProps) {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Outros itens */}
-            {simpleNavItems.slice(1).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center space-x-1 text-sm font-medium transition-colors hover:text-primary ${
-                  pathname === item.href ? 'text-primary' : 'text-muted-foreground'
-                }`}
-              >
-                <item.icon className="h-4 w-4" />
-                <span>{item.label}</span>
-                {item.badge ? (
-                  <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 text-xs">
-                    {item.badge}
-                  </Badge>
-                ) : null}
-              </Link>
-            ))}
+            {/* Buscar - Botão que abre barra abaixo */}
+            <button
+              onClick={handleSearchToggle}
+              className={`flex items-center space-x-1 text-sm font-medium transition-colors hover:text-primary ${
+                isSearchOpen ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <Search className="h-4 w-4" />
+              <span>Buscar</span>
+            </button>
+
+            {/* Carrinho */}
+            <Link
+              href={`${tenantPrefix}/cart`}
+              className={`flex items-center space-x-1 text-sm font-medium transition-colors hover:text-primary ${
+                pathname === `${tenantPrefix}/cart` ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              <span>Carrinho</span>
+              {totalItems > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 rounded-full p-0 text-xs">
+                  {totalItems}
+                </Badge>
+              )}
+            </Link>
           </nav>
 
           {/* User Actions */}
@@ -282,16 +335,21 @@ export function MainLayout({ children }: MainLayoutProps) {
                     )}
                   </div>
 
-                  {/* Buscar */}
-                  <Link
-                    href={`${tenantPrefix}/search`}
+                  {/* Buscar - Abre barra expansível */}
+                  <button
+                    onClick={() => {
+                      handleSearchToggle();
+                      // Fecha o menu mobile após clicar
+                      const closeButton = document.querySelector('[data-radix-collection-item]');
+                      if (closeButton instanceof HTMLElement) closeButton.click();
+                    }}
                     className={`flex items-center space-x-3 text-lg font-medium ${
-                      pathname === `${tenantPrefix}/search` ? 'text-primary' : 'text-muted-foreground'
+                      isSearchOpen ? 'text-primary' : 'text-muted-foreground'
                     }`}
                   >
                     <Search className="h-5 w-5" />
                     <span>Buscar</span>
-                  </Link>
+                  </button>
 
                   {/* Carrinho */}
                   <Link
@@ -343,6 +401,46 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
         </div>
       </header>
+
+      {/* Barra de Busca Expansível */}
+      <div
+        data-search-container
+        className={`overflow-hidden transition-all duration-300 ease-in-out border-b bg-background ${
+          isSearchOpen ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 border-b-0'
+        }`}
+      >
+        <div className="container py-3">
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-2xl mx-auto">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                type="text"
+                placeholder="O que você está procurando?"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                className="pl-10 pr-4 h-10"
+              />
+            </div>
+            <Button type="submit" variant="default" size="sm">
+              Buscar
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setIsSearchOpen(false);
+                setSearchQuery('');
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </form>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 py-6 md:py-8">{children}</main>
