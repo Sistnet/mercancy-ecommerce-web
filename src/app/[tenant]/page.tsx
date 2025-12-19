@@ -22,7 +22,6 @@ import {
   fetchDailyNeedsProducts,
 } from '@/lib/store/slices/products.slice';
 import { ProductCard } from '@/components/features/products/product-card';
-import { MainLayout } from '@/components/layouts/main-layout';
 import { getImageUrl } from '@/lib/utils/image';
 
 export default function TenantHomePage() {
@@ -63,17 +62,14 @@ export default function TenantHomePage() {
   // Aguardar config antes de renderizar qualquer coisa com imagem
   if (configLoading || !configInitialized || !config?.base_urls) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="container space-y-12 pb-12">
+    <div className="container space-y-12 pb-12">
         {/* Banner Section */}
         <section className="relative">
           {bannersLoading ? (
@@ -235,6 +231,5 @@ export default function TenantHomePage() {
           )}
         </section>
       </div>
-    </MainLayout>
   );
 }
