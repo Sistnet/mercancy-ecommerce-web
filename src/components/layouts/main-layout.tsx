@@ -20,6 +20,8 @@ import {
   Package,
   Wallet,
   MessageCircle,
+  ChevronDown,
+  Grid3X3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +50,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { config } = useAppSelector((state) => state.config);
   const { unreadCount } = useAppSelector((state) => state.notifications);
   const { currentTenant } = useAppSelector((state) => state.tenant);
+  const { categories } = useAppSelector((state) => state.categories);
 
   // AIDEV-NOTE: Prefixo de tenant para todas as rotas internas
   const tenantPrefix = currentTenant ? `/${currentTenant}` : '';
@@ -56,9 +59,9 @@ export function MainLayout({ children }: MainLayoutProps) {
     dispatch(logout());
   };
 
-  const navItems = [
+  // AIDEV-NOTE: Itens de navegação simples (sem submenu) - usado no desktop após o dropdown de Categorias
+  const simpleNavItems = [
     { href: `${tenantPrefix}/`, label: 'Início', icon: Home },
-    { href: `${tenantPrefix}/categories`, label: 'Categorias', icon: Menu },
     { href: `${tenantPrefix}/search`, label: 'Buscar', icon: Search },
     { href: `${tenantPrefix}/cart`, label: 'Carrinho', icon: ShoppingCart, badge: totalItems },
   ];
@@ -86,7 +89,60 @@ export function MainLayout({ children }: MainLayoutProps) {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            {navItems.map((item) => (
+            {/* Início */}
+            <Link
+              href={`${tenantPrefix}/`}
+              className={`flex items-center space-x-1 text-sm font-medium transition-colors hover:text-primary ${
+                pathname === `${tenantPrefix}/` ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <Home className="h-4 w-4" />
+              <span>Início</span>
+            </Link>
+
+            {/* Categorias Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={`flex items-center space-x-1 text-sm font-medium transition-colors hover:text-primary ${
+                    pathname?.startsWith(`${tenantPrefix}/categories`) ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                  <span>Categorias</span>
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link href={`${tenantPrefix}/categories`} className="flex items-center font-medium">
+                    <Grid3X3 className="mr-2 h-4 w-4" />
+                    Ver Todas
+                  </Link>
+                </DropdownMenuItem>
+                {categories.length > 0 && <DropdownMenuSeparator />}
+                {categories.slice(0, 8).map((category) => (
+                  <DropdownMenuItem key={category.id} asChild>
+                    <Link href={`${tenantPrefix}/categories/${category.id}`}>
+                      {category.name}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+                {categories.length > 8 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href={`${tenantPrefix}/categories`} className="text-primary">
+                        Ver mais {categories.length - 8} categorias...
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Outros itens */}
+            {simpleNavItems.slice(1).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -179,23 +235,76 @@ export function MainLayout({ children }: MainLayoutProps) {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80">
+              <SheetContent side="right" className="w-80 overflow-y-auto">
                 <nav className="flex flex-col space-y-4 mt-8">
-                  {navItems.map((item) => (
+                  {/* Início */}
+                  <Link
+                    href={`${tenantPrefix}/`}
+                    className={`flex items-center space-x-3 text-lg font-medium ${
+                      pathname === `${tenantPrefix}/` ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <Home className="h-5 w-5" />
+                    <span>Início</span>
+                  </Link>
+
+                  {/* Categorias Expandidas */}
+                  <div className="space-y-2">
                     <Link
-                      key={item.href}
-                      href={item.href}
+                      href={`${tenantPrefix}/categories`}
                       className={`flex items-center space-x-3 text-lg font-medium ${
-                        pathname === item.href ? 'text-primary' : 'text-muted-foreground'
+                        pathname?.startsWith(`${tenantPrefix}/categories`) ? 'text-primary' : 'text-muted-foreground'
                       }`}
                     >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                      {item.badge ? (
-                        <Badge variant="destructive">{item.badge}</Badge>
-                      ) : null}
+                      <Grid3X3 className="h-5 w-5" />
+                      <span>Categorias</span>
                     </Link>
-                  ))}
+                    {categories.length > 0 && (
+                      <div className="ml-8 space-y-1 border-l-2 border-muted pl-4">
+                        {categories.slice(0, 6).map((category) => (
+                          <Link
+                            key={category.id}
+                            href={`${tenantPrefix}/categories/${category.id}`}
+                            className="block py-1 text-sm text-muted-foreground hover:text-primary"
+                          >
+                            {category.name}
+                          </Link>
+                        ))}
+                        {categories.length > 6 && (
+                          <Link
+                            href={`${tenantPrefix}/categories`}
+                            className="block py-1 text-sm text-primary font-medium"
+                          >
+                            Ver todas ({categories.length})
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Buscar */}
+                  <Link
+                    href={`${tenantPrefix}/search`}
+                    className={`flex items-center space-x-3 text-lg font-medium ${
+                      pathname === `${tenantPrefix}/search` ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <Search className="h-5 w-5" />
+                    <span>Buscar</span>
+                  </Link>
+
+                  {/* Carrinho */}
+                  <Link
+                    href={`${tenantPrefix}/cart`}
+                    className={`flex items-center space-x-3 text-lg font-medium ${
+                      pathname === `${tenantPrefix}/cart` ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <ShoppingCart className="h-5 w-5" />
+                    <span>Carrinho</span>
+                    {totalItems > 0 && <Badge variant="destructive">{totalItems}</Badge>}
+                  </Link>
+
                   <div className="border-t pt-4 mt-4">
                     {isAuthenticated ? (
                       <>
