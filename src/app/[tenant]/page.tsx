@@ -11,7 +11,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks';
 import { fetchBanners, fetchFlashDeals } from '@/lib/store/slices/banners.slice';
@@ -74,7 +73,7 @@ export default function TenantHomePage() {
 
   return (
     <MainLayout>
-      <div className="space-y-12 pb-12">
+      <div className="container space-y-12 pb-12">
         {/* Banner Section */}
         <section className="relative">
           {bannersLoading ? (
@@ -117,7 +116,7 @@ export default function TenantHomePage() {
         </section>
 
         {/* Categories Section */}
-        <section className="container">
+        <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Categorias</h2>
             <Button variant="ghost" asChild>
@@ -128,32 +127,42 @@ export default function TenantHomePage() {
           </div>
 
           {categoriesLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="flex flex-wrap justify-start gap-6 md:gap-8">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-32 rounded-lg" />
+                <Skeleton key={i} className="w-20 h-20 md:w-24 md:h-24 rounded-full" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {categories.slice(0, 6).map((category) => (
-                <Link key={category.id} href={`/${tenant}/categories/${category.id}`}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                    <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-2">
-                      {category.image ? (
-                        <div className="relative w-16 h-16">
-                          <Image
-                            src={getImageUrl(config.base_urls, 'category', category.image, { tenant })}
-                            alt={category.name}
-                            fill
-                            className="object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-16 h-16 bg-muted rounded-full" />
-                      )}
-                      <span className="font-medium text-sm line-clamp-2">{category.name}</span>
-                    </CardContent>
-                  </Card>
+            <div className="flex flex-wrap justify-start gap-6 md:gap-8">
+              {categories.slice(0, 8).map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/${tenant}/categories/${category.id}`}
+                  className="group relative flex flex-col items-center"
+                >
+                  {/* Circular Image Container */}
+                  <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 ring-2 ring-transparent group-hover:ring-primary/50 group-hover:scale-105 transition-all duration-300 shadow-md group-hover:shadow-lg">
+                    {category.image ? (
+                      <Image
+                        src={getImageUrl(config.base_urls, 'category', category.image, { tenant })}
+                        alt={category.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-muted-foreground/50">
+                          {category.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    {/* Hover Overlay with Name */}
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <span className="text-white text-xs md:text-sm font-medium text-center px-2 line-clamp-2">
+                        {category.name}
+                      </span>
+                    </div>
+                  </div>
                 </Link>
               ))}
             </div>
@@ -162,7 +171,7 @@ export default function TenantHomePage() {
 
         {/* Featured Products */}
         {featuredProducts.length > 0 && (
-          <section className="container">
+          <section>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">Produtos em Destaque</h2>
               <Button variant="ghost" asChild>
@@ -182,7 +191,7 @@ export default function TenantHomePage() {
 
         {/* Daily Needs */}
         {dailyNeedsProducts.length > 0 && (
-          <section className="container">
+          <section>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">Necessidades Diárias</h2>
               <Button variant="ghost" asChild>
@@ -201,7 +210,7 @@ export default function TenantHomePage() {
         )}
 
         {/* All Products */}
-        <section className="container">
+        <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Todos os Produtos</h2>
             <Button variant="ghost" asChild>

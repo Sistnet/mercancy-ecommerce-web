@@ -232,7 +232,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 py-6 md:py-8">{children}</main>
 
       {/* Footer */}
       <footer className="border-t bg-muted/50">
