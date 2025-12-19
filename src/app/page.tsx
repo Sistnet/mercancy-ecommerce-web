@@ -29,6 +29,7 @@ export default function HomePage() {
   const dispatch = useAppDispatch();
 
   const { config, isLoading: configLoading, isInitialized: configInitialized } = useAppSelector((state) => state.config);
+  const { currentTenant } = useAppSelector((state) => state.tenant);
   const { banners, isLoading: bannersLoading } = useAppSelector((state) => state.banners);
   const { categories, isLoading: categoriesLoading } = useAppSelector((state) => state.categories);
   const {
@@ -78,7 +79,7 @@ export default function HomePage() {
           ) : banners.length > 0 ? (
             <div className="relative w-full h-[300px] md:h-[400px] bg-muted rounded-lg overflow-hidden">
               <Image
-                src={getImageUrl(config.base_urls, 'banner', banners[0]?.image)}
+                src={getImageUrl(config.base_urls, 'banner', banners[0]?.image, { tenant: currentTenant || undefined })}
                 alt={banners[0]?.title || 'Banner'}
                 fill
                 className="object-cover"
@@ -137,7 +138,7 @@ export default function HomePage() {
                       {category.image ? (
                         <div className="relative w-16 h-16">
                           <Image
-                            src={getImageUrl(config.base_urls, 'category', category.image)}
+                            src={getImageUrl(config.base_urls, 'category', category.image, { tenant: currentTenant || undefined })}
                             alt={category.name}
                             fill
                             className="object-contain"

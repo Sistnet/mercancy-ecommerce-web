@@ -24,6 +24,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const dispatch = useAppDispatch();
   const { config } = useAppSelector((state) => state.config);
+  const { currentTenant } = useAppSelector((state) => state.tenant);
   const { productIds: wishlistIds } = useAppSelector((state) => state.wishlist);
   const { isAuthenticated } = useAppSelector((state) => state.auth);
 
@@ -92,7 +93,7 @@ export function ProductCard({ product }: ProductCardProps) {
     }
   };
 
-  const imageUrl = getImageUrl(config?.base_urls, 'product', product.image?.[0]);
+  const imageUrl = getImageUrl(config?.base_urls, 'product', product.image?.[0], { tenant: currentTenant || undefined });
 
   const formatPrice = (price: number) => {
     const symbol = config?.currency_symbol || 'R$';

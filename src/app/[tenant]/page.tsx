@@ -82,7 +82,7 @@ export default function TenantHomePage() {
           ) : banners.length > 0 ? (
             <div className="relative w-full h-[300px] md:h-[400px] bg-muted rounded-lg overflow-hidden">
               <Image
-                src={getImageUrl(config.base_urls, 'banner', banners[0]?.image)}
+                src={getImageUrl(config.base_urls, 'banner', banners[0]?.image, { tenant })}
                 alt={banners[0]?.title || 'Banner'}
                 fill
                 className="object-cover"
@@ -142,7 +142,7 @@ export default function TenantHomePage() {
                       {category.image ? (
                         <div className="relative w-16 h-16">
                           <Image
-                            src={getImageUrl(config.base_urls, 'category', category.image)}
+                            src={getImageUrl(config.base_urls, 'category', category.image, { tenant })}
                             alt={category.name}
                             fill
                             className="object-contain"
