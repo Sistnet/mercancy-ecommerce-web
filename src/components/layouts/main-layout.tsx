@@ -47,25 +47,29 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { totalItems } = useAppSelector((state) => state.cart);
   const { config } = useAppSelector((state) => state.config);
   const { unreadCount } = useAppSelector((state) => state.notifications);
+  const { currentTenant } = useAppSelector((state) => state.tenant);
+
+  // AIDEV-NOTE: Prefixo de tenant para todas as rotas internas
+  const tenantPrefix = currentTenant ? `/${currentTenant}` : '';
 
   const handleLogout = () => {
     dispatch(logout());
   };
 
   const navItems = [
-    { href: '/', label: 'Início', icon: Home },
-    { href: '/categories', label: 'Categorias', icon: Menu },
-    { href: '/search', label: 'Buscar', icon: Search },
-    { href: '/cart', label: 'Carrinho', icon: ShoppingCart, badge: totalItems },
+    { href: `${tenantPrefix}/`, label: 'Início', icon: Home },
+    { href: `${tenantPrefix}/categories`, label: 'Categorias', icon: Menu },
+    { href: `${tenantPrefix}/search`, label: 'Buscar', icon: Search },
+    { href: `${tenantPrefix}/cart`, label: 'Carrinho', icon: ShoppingCart, badge: totalItems },
   ];
 
   const userMenuItems = [
-    { href: '/profile', label: 'Meu Perfil', icon: User },
-    { href: '/orders', label: 'Meus Pedidos', icon: Package },
-    { href: '/wishlist', label: 'Lista de Desejos', icon: Heart },
-    { href: '/wallet', label: 'Carteira', icon: Wallet },
-    { href: '/notifications', label: 'Notificações', icon: Bell },
-    { href: '/chat', label: 'Mensagens', icon: MessageCircle },
+    { href: `${tenantPrefix}/profile`, label: 'Meu Perfil', icon: User },
+    { href: `${tenantPrefix}/orders`, label: 'Meus Pedidos', icon: Package },
+    { href: `${tenantPrefix}/wishlist`, label: 'Lista de Desejos', icon: Heart },
+    { href: `${tenantPrefix}/wallet`, label: 'Carteira', icon: Wallet },
+    { href: `${tenantPrefix}/notifications`, label: 'Notificações', icon: Bell },
+    { href: `${tenantPrefix}/chat`, label: 'Mensagens', icon: MessageCircle },
   ];
 
   return (
@@ -74,7 +78,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href={`${tenantPrefix}/`} className="flex items-center space-x-2">
             <span className="text-xl font-bold text-primary">
               {config?.ecommerce_name || 'Mercado'}
             </span>
@@ -105,7 +109,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <div className="flex items-center space-x-4">
             {/* Notifications */}
             {isAuthenticated && (
-              <Link href="/notifications" className="relative">
+              <Link href={`${tenantPrefix}/notifications`} className="relative">
                 <Bell className="h-5 w-5 text-muted-foreground hover:text-primary" />
                 {unreadCount > 0 && (
                   <Badge
@@ -160,10 +164,10 @@ export function MainLayout({ children }: MainLayoutProps) {
             ) : (
               <div className="flex items-center space-x-2">
                 <Button variant="ghost" asChild>
-                  <Link href="/login">Entrar</Link>
+                  <Link href={`${tenantPrefix}/login`}>Entrar</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/register">Cadastrar</Link>
+                  <Link href={`${tenantPrefix}/register`}>Cadastrar</Link>
                 </Button>
               </div>
             )}
@@ -216,10 +220,10 @@ export function MainLayout({ children }: MainLayoutProps) {
                     ) : (
                       <div className="flex flex-col space-y-2">
                         <Button asChild>
-                          <Link href="/login">Entrar</Link>
+                          <Link href={`${tenantPrefix}/login`}>Entrar</Link>
                         </Button>
                         <Button variant="outline" asChild>
-                          <Link href="/register">Cadastrar</Link>
+                          <Link href={`${tenantPrefix}/register`}>Cadastrar</Link>
                         </Button>
                       </div>
                     )}
@@ -242,17 +246,17 @@ export function MainLayout({ children }: MainLayoutProps) {
               <h3 className="font-semibold mb-4">Sobre</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
-                  <Link href="/about" className="hover:text-primary">
+                  <Link href={`${tenantPrefix}/about`} className="hover:text-primary">
                     Quem Somos
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="hover:text-primary">
+                  <Link href={`${tenantPrefix}/terms`} className="hover:text-primary">
                     Termos de Uso
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" className="hover:text-primary">
+                  <Link href={`${tenantPrefix}/privacy`} className="hover:text-primary">
                     Privacidade
                   </Link>
                 </li>
@@ -262,17 +266,17 @@ export function MainLayout({ children }: MainLayoutProps) {
               <h3 className="font-semibold mb-4">Ajuda</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
-                  <Link href="/faq" className="hover:text-primary">
+                  <Link href={`${tenantPrefix}/faq`} className="hover:text-primary">
                     FAQ
                   </Link>
                 </li>
                 <li>
-                  <Link href="/support" className="hover:text-primary">
+                  <Link href={`${tenantPrefix}/support`} className="hover:text-primary">
                     Suporte
                   </Link>
                 </li>
                 <li>
-                  <Link href="/chat" className="hover:text-primary">
+                  <Link href={`${tenantPrefix}/chat`} className="hover:text-primary">
                     Contato
                   </Link>
                 </li>
@@ -282,17 +286,17 @@ export function MainLayout({ children }: MainLayoutProps) {
               <h3 className="font-semibold mb-4">Conta</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
-                  <Link href="/profile" className="hover:text-primary">
+                  <Link href={`${tenantPrefix}/profile`} className="hover:text-primary">
                     Minha Conta
                   </Link>
                 </li>
                 <li>
-                  <Link href="/orders" className="hover:text-primary">
+                  <Link href={`${tenantPrefix}/orders`} className="hover:text-primary">
                     Meus Pedidos
                   </Link>
                 </li>
                 <li>
-                  <Link href="/wishlist" className="hover:text-primary">
+                  <Link href={`${tenantPrefix}/wishlist`} className="hover:text-primary">
                     Lista de Desejos
                   </Link>
                 </li>

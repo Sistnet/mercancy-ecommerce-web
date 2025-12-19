@@ -42,6 +42,10 @@ export default function LoginPage() {
   const dispatch = useAppDispatch();
   const { isLoading, error, guestId } = useAppSelector((state) => state.auth);
   const { config } = useAppSelector((state) => state.config);
+  const { currentTenant } = useAppSelector((state) => state.tenant);
+
+  // AIDEV-NOTE: Prefixo de tenant para todas as rotas internas
+  const tenantPrefix = currentTenant ? `/${currentTenant}` : '';
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -67,7 +71,7 @@ export default function LoginPage() {
 
     if (login.fulfilled.match(result)) {
       toast.success('Login realizado com sucesso!');
-      router.push('/');
+      router.push(`${tenantPrefix}/`);
     } else {
       toast.error(result.payload as string || 'Erro ao fazer login');
     }
@@ -108,7 +112,7 @@ export default function LoginPage() {
                 <div className="flex items-center justify-between">
                   <FormLabel>Senha</FormLabel>
                   <Link
-                    href="/forgot-password"
+                    href={`${tenantPrefix}/forgot-password`}
                     className="text-sm text-primary hover:underline"
                   >
                     Esqueceu a senha?
@@ -236,7 +240,7 @@ export default function LoginPage() {
           {/* Register Link */}
           <p className="text-center text-sm text-muted-foreground">
             Não tem uma conta?{' '}
-            <Link href="/register" className="text-primary hover:underline font-medium">
+            <Link href={`${tenantPrefix}/register`} className="text-primary hover:underline font-medium">
               Cadastre-se
             </Link>
           </p>

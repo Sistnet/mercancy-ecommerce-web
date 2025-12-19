@@ -28,6 +28,9 @@ export function ProductCard({ product }: ProductCardProps) {
   const { productIds: wishlistIds } = useAppSelector((state) => state.wishlist);
   const { isAuthenticated } = useAppSelector((state) => state.auth);
 
+  // AIDEV-NOTE: Prefixo de tenant para todas as rotas internas
+  const tenantPrefix = currentTenant ? `/${currentTenant}` : '';
+
   const isInWishlist = wishlistIds.includes(product.id);
 
   // Calcular preço com desconto
@@ -104,7 +107,7 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <Link href={`/products/${product.id}`}>
+    <Link href={`${tenantPrefix}/products/${product.id}`}>
       <Card className="group h-full hover:shadow-lg transition-shadow overflow-hidden">
         <CardContent className="p-0">
           {/* Image Container */}

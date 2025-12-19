@@ -16,13 +16,17 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   const { config } = useAppSelector((state) => state.config);
+  const { currentTenant } = useAppSelector((state) => state.tenant);
+
+  // AIDEV-NOTE: Prefixo de tenant para todas as rotas internas
+  const tenantPrefix = currentTenant ? `/${currentTenant}` : '';
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left Side - Branding */}
       <div className="hidden md:flex md:w-1/2 bg-primary p-12 flex-col justify-between text-primary-foreground">
         <div>
-          <Link href="/" className="text-3xl font-bold">
+          <Link href={`${tenantPrefix}/`} className="text-3xl font-bold">
             {config?.ecommerce_name || 'Mercado'}
           </Link>
         </div>
@@ -46,7 +50,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
           <div className="md:hidden text-center">
-            <Link href="/" className="text-2xl font-bold text-primary">
+            <Link href={`${tenantPrefix}/`} className="text-2xl font-bold text-primary">
               {config?.ecommerce_name || 'Mercado'}
             </Link>
           </div>

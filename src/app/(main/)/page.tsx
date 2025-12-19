@@ -36,6 +36,9 @@ export default function HomePage() {
     isLoading: productsLoading,
   } = useAppSelector((state) => state.products);
 
+  // AIDEV-NOTE: Prefixo de tenant para todas as rotas internas
+  const tenantPrefix = currentTenant ? `/${currentTenant}` : '';
+
   // Primeiro: carregar config
   useEffect(() => {
     if (!configInitialized && !configLoading) {
@@ -85,7 +88,7 @@ export default function HomePage() {
                 <div className="max-w-lg text-white space-y-4">
                   <h1 className="text-3xl md:text-5xl font-bold">{banners[0]?.title}</h1>
                   <Button size="lg" asChild>
-                    <Link href="/products">Ver Produtos</Link>
+                    <Link href={`${tenantPrefix}/products`}>Ver Produtos</Link>
                   </Button>
                 </div>
               </div>
@@ -99,7 +102,7 @@ export default function HomePage() {
               </h1>
               <p className="text-lg opacity-90">Os melhores produtos você encontra aqui</p>
               <Button size="lg" variant="secondary" asChild>
-                <Link href="/products">Explorar Produtos</Link>
+                <Link href={`${tenantPrefix}/products`}>Explorar Produtos</Link>
               </Button>
             </div>
           </div>
@@ -111,7 +114,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Categorias</h2>
           <Button variant="ghost" asChild>
-            <Link href="/categories" className="flex items-center">
+            <Link href={`${tenantPrefix}/categories`} className="flex items-center">
               Ver Todas <ChevronRight className="h-4 w-4 ml-1" />
             </Link>
           </Button>
@@ -128,7 +131,7 @@ export default function HomePage() {
             {categories.slice(0, 8).map((category) => (
               <Link
                 key={category.id}
-                href={`/categories/${category.id}`}
+                href={`${tenantPrefix}/categories/${category.id}`}
                 className="group relative flex flex-col items-center"
               >
                 {/* Circular Image Container */}
@@ -166,7 +169,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Produtos em Destaque</h2>
             <Button variant="ghost" asChild>
-              <Link href="/products?filter=featured" className="flex items-center">
+              <Link href={`${tenantPrefix}/products?filter=featured`} className="flex items-center">
                 Ver Todos <ChevronRight className="h-4 w-4 ml-1" />
               </Link>
             </Button>
@@ -186,7 +189,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Necessidades Diárias</h2>
             <Button variant="ghost" asChild>
-              <Link href="/products?filter=daily-needs" className="flex items-center">
+              <Link href={`${tenantPrefix}/products?filter=daily-needs`} className="flex items-center">
                 Ver Todos <ChevronRight className="h-4 w-4 ml-1" />
               </Link>
             </Button>
@@ -205,7 +208,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Todos os Produtos</h2>
           <Button variant="ghost" asChild>
-            <Link href="/products" className="flex items-center">
+            <Link href={`${tenantPrefix}/products`} className="flex items-center">
               Ver Todos <ChevronRight className="h-4 w-4 ml-1" />
             </Link>
           </Button>
