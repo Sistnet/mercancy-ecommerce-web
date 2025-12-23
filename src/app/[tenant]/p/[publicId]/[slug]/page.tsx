@@ -30,8 +30,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks';
 import { fetchProductDetails, clearSelectedProduct } from '@/lib/store/slices/products.slice';
 import { fetchConfig } from '@/lib/store/slices/config.slice';
-import { addToCart } from '@/lib/store/slices/cart.slice';
 import { addToWishlist, removeFromWishlist } from '@/lib/store/slices/wishlist.slice';
+import { useCartActions, useStoreStatus } from '@/lib/hooks';
 import { getImageUrl, getProductImageUrl } from '@/lib/utils/image';
 import { toast } from 'sonner';
 
@@ -63,6 +63,10 @@ export default function CanonicalProductPage() {
   const { currentTenant, isResolved } = useAppSelector((state) => state.tenant);
   const { productIds: wishlistIds } = useAppSelector((state) => state.wishlist);
   const { isAuthenticated } = useAppSelector((state) => state.auth);
+
+  // AIDEV-NOTE: Use cart actions hook to block adding when store is closed
+  const { addToCart, canAddToCart } = useCartActions();
+  const { isOpen } = useStoreStatus();
 
   const isInWishlist = product ? wishlistIds.includes(product.id) : false;
 
@@ -153,7 +157,8 @@ export default function CanonicalProductPage() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    dispatch(addToCart({
+    // AIDEV-NOTE: useCartActions hook handles store closed validation and toast
+    addToCart({
       product: {
         id: product.id,
         name: product.name,
@@ -169,8 +174,7 @@ export default function CanonicalProductPage() {
       quantity,
       variation: selectedVariation ? [selectedVariation] : [],
       variationType: selectedVariation || '',
-    }));
-    toast.success(`${quantity}x ${product.name} adicionado ao carrinho!`);
+    });
   };
 
   const handleToggleWishlist = () => {
@@ -458,10 +462,11 @@ export default function CanonicalProductPage() {
                 size="lg"
                 className="flex-1 h-12 rounded-full font-semibold"
                 onClick={handleAddToCart}
-                disabled={product.totalStock === 0}
+                disabled={product.totalStock === 0 || !canAddToCart}
+                variant={!isOpen ? 'secondary' : 'default'}
               >
                 <ShoppingCart className="h-5 w-5 mr-2" />
-                Adicionar ao Carrinho
+                {!isOpen ? 'Loja Fechada' : 'Adicionar ao Carrinho'}
               </Button>
               <Button
                 variant="outline"

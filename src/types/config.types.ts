@@ -107,6 +107,11 @@ export interface Branch {
   coverage: number;
   status: boolean;
   preparationTime: number;
+  // AIDEV-NOTE: Business hours status fields
+  is_open: boolean;
+  is_always_open: boolean;
+  is_temporarily_closed: boolean;
+  next_opening_time: string | null;
 }
 
 export interface DeliveryManagement {

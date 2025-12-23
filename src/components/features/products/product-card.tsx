@@ -1,136 +1,106 @@
 'use client';
 
 /**
- * ProductCard - Card de produto reutilizável
+ * ProductCard - Reusable product card component
+ * AIDEV-NOTE: Refactored to use extracted hooks and utilities for better maintainability
  */
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Heart, ShoppingCart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAppSelector, useAppDispatch } from '@/lib/store/hooks';
-import { addToCart } from '@/lib/store/slices/cart.slice';
-import { addToWishlist, removeFromWishlist } from '@/lib/store/slices/wishlist.slice';
+import { useAppSelector } from '@/lib/store/hooks';
+import {
+  useCartActions,
+  useStoreStatus,
+  useTenantPrefix,
+  useTenant,
+  useWishlistActions,
+} from '@/lib/hooks';
+import { formatPrice, calculateDiscountedPrice, formatDiscountBadge, hasDiscount } from '@/lib/utils/price';
+import { getProductCardImageUrl } from '@/lib/utils/image';
 import type { Product } from '@/types/product.types';
-import { toast } from 'sonner';
-import { getImageUrl, getProductImageUrl } from '@/lib/utils/image';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const pathname = usePathname();
-  const dispatch = useAppDispatch();
   const { config } = useAppSelector((state) => state.config);
-  const { currentTenant } = useAppSelector((state) => state.tenant);
-  const { productIds: wishlistIds } = useAppSelector((state) => state.wishlist);
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const tenantPrefix = useTenantPrefix();
+  const tenant = useTenant();
 
-  // AIDEV-NOTE: Extract tenant from pathname to avoid hydration mismatch
-  const tenantFromPath = pathname?.split('/')[1] || '';
-  const resolvedTenant = currentTenant || tenantFromPath;
-  const tenantPrefix = resolvedTenant ? `/${resolvedTenant}` : '';
+  // AIDEV-NOTE: Use extracted hooks for cart and wishlist actions
+  const { addToCart, canAddToCart } = useCartActions();
+  const { isOpen } = useStoreStatus();
+  const { isInWishlist, toggleWishlist } = useWishlistActions(product.id);
 
-  const isInWishlist = wishlistIds.includes(product.id);
+  // Calculate prices using utility
+  const discountedPrice = hasDiscount(product.discount)
+    ? calculateDiscountedPrice(product.price, product.discount, product.discountType)
+    : product.price;
 
-  // Calcular preço com desconto
-  const originalPrice = product.price;
-  let discountedPrice = originalPrice;
-
-  if (product.discount > 0) {
-    if (product.discountType === 'percent') {
-      discountedPrice = originalPrice - (originalPrice * product.discount) / 100;
-    } else {
-      discountedPrice = originalPrice - product.discount;
-    }
-  }
-
-  // Calcular rating médio
+  // Calculate average rating
   const averageRating =
     product.rating && product.rating.length > 0
       ? product.rating.reduce((sum, r) => sum + r.average, 0) / product.rating.length
       : 0;
 
+  // Get image URL using utility
+  const imageUrl = getProductCardImageUrl(product, {
+    storageConfig: config?.storage,
+    tenant,
+  });
+
+  // Build product URL - use canonical format if publicId available
+  const productUrl =
+    product.publicId && product.slug
+      ? `${tenantPrefix}/p/${product.publicId}/${product.slug}`
+      : `${tenantPrefix}/products/${product.id}`;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    dispatch(
-      addToCart({
-        product: {
-          id: product.id,
-          name: product.name,
-          description: product.description,
-          image: product.image,
-          price: product.price,
-          discount: product.discount,
-          discountType: product.discountType,
-          tax: product.tax,
-          taxType: product.taxType,
-          variations: product.variations,
-        },
-        quantity: 1,
-        variation: [],
-        variationType: '',
-      })
-    );
-
-    toast.success('Produto adicionado ao carrinho!');
+    addToCart({
+      product: {
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        image: product.image,
+        price: product.price,
+        discount: product.discount,
+        discountType: product.discountType,
+        tax: product.tax,
+        taxType: product.taxType,
+        variations: product.variations,
+      },
+      quantity: 1,
+      variation: [],
+      variationType: '',
+    });
   };
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isAuthenticated) {
-      toast.error('Faça login para adicionar aos favoritos');
-      return;
-    }
-
-    if (isInWishlist) {
-      dispatch(removeFromWishlist(product.id));
-      toast.success('Removido dos favoritos');
-    } else {
-      dispatch(addToWishlist(product.id));
-      toast.success('Adicionado aos favoritos');
-    }
+    toggleWishlist(e);
   };
 
-  // AIDEV-NOTE: Determine image URL based on format
-  // - New format (0.jpg, 1.jpg): use publicId-based path (img/p/{publicId}/{filename})
-  // - Legacy format (2025-xx-xx-xxx.jpg): use tenant-based path (img/tenants/{tenant}/product/{filename})
-  const firstImage = product.image?.[0];
-  const isNewFormat = firstImage && /^\d+\.\w+$/.test(firstImage);
+  const isOutOfStock = product.totalStock === 0;
+  const cartButtonDisabled = isOutOfStock || !canAddToCart;
 
-  const imageUrl = isNewFormat && product.publicId
-    ? getProductImageUrl(product.publicId, firstImage, { storageConfig: config?.storage })
-    : getImageUrl(config?.base_urls, 'product', firstImage, {
-        tenant: currentTenant || undefined,
-        storageConfig: config?.storage,
-      });
-
-  const formatPrice = (price: number) => {
-    const symbol = config?.currency_symbol || 'R$';
-    const position = config?.currency_symbol_position || 'left';
-    const formatted = price.toFixed(2).replace('.', ',');
-
-    return position === 'left' ? `${symbol} ${formatted}` : `${formatted} ${symbol}`;
+  const getCartButtonText = () => {
+    if (isOutOfStock) return 'Indisponível';
+    if (!isOpen) return 'Loja Fechada';
+    return 'Adicionar';
   };
-
-  // AIDEV-NOTE: Build product URL - use canonical format if publicId available, fallback to legacy
-  const productUrl = product.publicId && product.slug
-    ? `${tenantPrefix}/p/${product.publicId}/${product.slug}`
-    : `${tenantPrefix}/products/${product.id}`;
 
   return (
     <Link href={productUrl}>
       <Card className="group h-full hover:shadow-lg transition-shadow overflow-hidden">
         <CardContent className="p-0">
-          {/* Image Container - Compacto */}
+          {/* Image Container */}
           {/* AIDEV-NOTE: Uses custom --product-card-bg variable for branding, falls back to muted */}
           <div
             className="relative h-[120px] sm:h-[140px] overflow-hidden"
@@ -145,9 +115,9 @@ export function ProductCard({ product }: ProductCardProps) {
             />
 
             {/* Discount Badge */}
-            {product.discount > 0 && (
+            {hasDiscount(product.discount) && (
               <Badge className="absolute top-2 left-2 bg-destructive">
-                -{product.discountType === 'percent' ? `${product.discount}%` : formatPrice(product.discount)}
+                {formatDiscountBadge(product.discount, product.discountType, config)}
               </Badge>
             )}
 
@@ -169,10 +139,11 @@ export function ProductCard({ product }: ProductCardProps) {
                 className="w-full"
                 size="sm"
                 onClick={handleAddToCart}
-                disabled={product.totalStock === 0}
+                disabled={cartButtonDisabled}
+                variant={!isOpen ? 'secondary' : 'default'}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                {product.totalStock === 0 ? 'Indisponível' : 'Adicionar'}
+                {getCartButtonText()}
               </Button>
             </div>
           </div>
@@ -194,16 +165,16 @@ export function ProductCard({ product }: ProductCardProps) {
 
             {/* Price */}
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-primary">{formatPrice(discountedPrice)}</span>
-              {product.discount > 0 && (
+              <span className="font-bold text-primary">{formatPrice(discountedPrice, config)}</span>
+              {hasDiscount(product.discount) && (
                 <span className="text-sm text-muted-foreground line-through">
-                  {formatPrice(originalPrice)}
+                  {formatPrice(product.price, config)}
                 </span>
               )}
             </div>
 
             {/* Stock Status */}
-            {product.totalStock === 0 && (
+            {isOutOfStock && (
               <Badge variant="secondary" className="text-xs">
                 Esgotado
               </Badge>

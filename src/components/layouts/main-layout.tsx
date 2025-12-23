@@ -40,6 +40,7 @@ import { useAppSelector, useAppDispatch } from '@/lib/store/hooks';
 import { logout } from '@/lib/store/slices/auth.slice';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/utils/image';
+import { StoreStatusBanner } from '@/components/features/store/store-status-banner';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -458,6 +459,9 @@ export function MainLayout({ children }: MainLayoutProps) {
           </form>
         </div>
       </div>
+
+      {/* AIDEV-NOTE: Store Status Banner - Shows when store is closed */}
+      <StoreStatusBanner />
 
       {/* Main Content */}
       <main className="flex-1 py-6 md:py-8">{children}</main>

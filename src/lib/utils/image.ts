@@ -445,3 +445,51 @@ export function usesLegacyImageFormat(images: (string | number)[] | undefined | 
   const firstImage = images[0];
   return typeof firstImage === 'string' && firstImage.match(/^\d{4}-\d{2}-\d{2}-/) !== null;
 }
+
+/**
+ * Product image data for getProductCardImageUrl
+ */
+export interface ProductImageData {
+  image?: string[] | null;
+  publicId?: string | null;
+}
+
+/**
+ * Get the first product image URL for display in cards/lists
+ *
+ * AIDEV-NOTE: Handles both legacy and new image formats automatically
+ * - New format (0.jpg, 1.jpg): uses publicId-based path (img/p/{publicId}/{filename})
+ * - Legacy format (2025-xx-xx-xxx.jpg): uses tenant-based path (img/tenants/{tenant}/product/{filename})
+ *
+ * @param product - Product with image array and optional publicId
+ * @param options - Storage config and tenant options
+ * @returns Image URL or placeholder
+ *
+ * @example
+ * getProductCardImageUrl(product, { storageConfig: config?.storage, tenant: currentTenant })
+ */
+export function getProductCardImageUrl(
+  product: ProductImageData,
+  options?: { storageConfig?: StorageConfig | null; tenant?: string }
+): string {
+  const firstImage = product.image?.[0];
+
+  if (!firstImage) {
+    return PLACEHOLDER_IMAGE;
+  }
+
+  // Check if new format (numeric filename like "0.jpg", "1.webp")
+  const isNewFormat = /^\d+\.\w+$/.test(firstImage);
+
+  if (isNewFormat && product.publicId) {
+    return getProductImageUrl(product.publicId, firstImage, {
+      storageConfig: options?.storageConfig,
+    });
+  }
+
+  // Legacy format - use tenant-based path
+  return getImageUrl(null, 'product', firstImage, {
+    tenant: options?.tenant,
+    storageConfig: options?.storageConfig,
+  });
+}
