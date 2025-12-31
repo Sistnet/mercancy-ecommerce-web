@@ -22,7 +22,7 @@ import {
   fetchDailyNeedsProducts,
 } from '@/lib/store/slices/products.slice';
 import { ProductCard } from '@/components/features/products/product-card';
-import { getImageUrl } from '@/lib/utils/image';
+import { getImageUrl, getCategoryCardImageUrl } from '@/lib/utils/image';
 
 export default function TenantHomePage() {
   const params = useParams();
@@ -142,7 +142,7 @@ export default function TenantHomePage() {
                   <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 ring-2 ring-transparent group-hover:ring-primary/50 group-hover:scale-105 transition-all duration-300 shadow-md group-hover:shadow-lg">
                     {category.image ? (
                       <Image
-                        src={getImageUrl(config.base_urls, 'category', category.image, { tenant })}
+                        src={getCategoryCardImageUrl(category, { tenant, storageConfig: config?.storage })}
                         alt={category.name}
                         fill
                         className="object-cover"

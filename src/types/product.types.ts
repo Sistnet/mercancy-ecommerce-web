@@ -110,6 +110,7 @@ export interface Category {
   id: number;
   name: string;
   image: string;
+  public_id?: string; // AIDEV-NOTE: ULID for R2 image path (img/c/{public_id}/{filename})
   parent_id: number;
   position: number;
   status: number;

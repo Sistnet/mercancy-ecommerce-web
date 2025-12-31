@@ -38,9 +38,24 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:80';
 // AIDEV-NOTE: When set, all cloud storage images are served through this CDN
 const CDN_URL = process.env.NEXT_PUBLIC_CDN_URL || '';
 
-// AIDEV-NOTE: Product image path prefix (Amazon/ML style)
-// URL pattern: {base_url}/img/p/{publicId}/{index}.{ext}
-const PRODUCT_IMAGE_PREFIX = 'p';
+// AIDEV-NOTE: Entity image path prefixes (Amazon/ML style)
+// URL pattern: {base_url}/img/{prefix}/{publicId}/{index}.{ext}
+type EntityPrefix = 'p' | 'c';
+const ENTITY_PREFIXES: Record<ImageType, EntityPrefix | null> = {
+  product: 'p',
+  category: 'c',
+  customer: null,
+  banner: null,
+  review: null,
+  notification: null,
+  ecommerce: null,
+  delivery_man: null,
+  chat: null,
+  category_banner: null,
+  flash_sale: null,
+  gateway: null,
+  order: null,
+};
 
 // Cache da configuração de storage
 let cachedStorageConfig: StorageConfig | null = null;
@@ -95,6 +110,7 @@ export function getCdnUrl(): string {
 /**
  * Constrói URL usando CDN customizado
  * AIDEV-NOTE: CDN_URL tem prioridade sobre storage.public_url da API
+ * AIDEV-NOTE: Uses storage_folder from config (db_schema) for correct image path
  */
 function buildCdnUrl(
   storage: StorageConfig | null,
@@ -105,13 +121,16 @@ function buildCdnUrl(
   const cleanFilename = filename.startsWith('/') ? filename.slice(1) : filename;
   const pathPrefix = storage?.path_prefix || 'img';
   const baseUrl = CDN_URL.endsWith('/') ? CDN_URL.slice(0, -1) : CDN_URL;
+  // AIDEV-NOTE: Use storage_folder (db_schema) if available, otherwise fallback to tenant
+  const storageFolder = storage?.storage_folder || tenant;
 
-  // CDN URL format: {CDN_URL}/{path_prefix}/tenants/{tenant}/{type}/{filename}
-  return `${baseUrl}/${pathPrefix}/tenants/${tenant}/${type}/${cleanFilename}`;
+  // CDN URL format: {CDN_URL}/{path_prefix}/tenants/{storageFolder}/{type}/{filename}
+  return `${baseUrl}/${pathPrefix}/tenants/${storageFolder}/${type}/${cleanFilename}`;
 }
 
 /**
  * Constrói URL para R2 (CloudFlare R2 public bucket)
+ * AIDEV-NOTE: Uses storage_folder from config (db_schema) for correct image path
  */
 function buildR2Url(
   storage: StorageConfig,
@@ -126,23 +145,28 @@ function buildR2Url(
 
   if (!storage.public_url) {
     console.warn('[Image] R2 public_url not configured, falling back to proxy');
-    return buildProxyUrl(tenant, type, filename);
+    return buildProxyUrl(storage, tenant, type, filename);
   }
 
   const cleanFilename = filename.startsWith('/') ? filename.slice(1) : filename;
   const pathPrefix = storage.path_prefix || 'img';
+  // AIDEV-NOTE: Use storage_folder (db_schema) if available, otherwise fallback to tenant
+  const storageFolder = storage.storage_folder || tenant;
 
-  // R2 URL format: {public_url}/{path_prefix}/tenants/{tenant}/{type}/{filename}
-  return `${storage.public_url}/${pathPrefix}/tenants/${tenant}/${type}/${cleanFilename}`;
+  // R2 URL format: {public_url}/{path_prefix}/tenants/{storageFolder}/{type}/{filename}
+  return `${storage.public_url}/${pathPrefix}/tenants/${storageFolder}/${type}/${cleanFilename}`;
 }
 
 /**
  * Constrói URL para proxy Laravel (GCS ou local)
+ * AIDEV-NOTE: Uses storage_folder from config (db_schema) for correct image path
  */
-function buildProxyUrl(tenant: string, type: ImageType, filename: string): string {
+function buildProxyUrl(storage: StorageConfig | null, tenant: string, type: ImageType, filename: string): string {
   const cleanFilename = filename.startsWith('/') ? filename.slice(1) : filename;
-  // Proxy URL format: {API_URL}/{tenant}/storage/gcs/img/tenants/{tenant}/{type}/{filename}
-  return `${API_BASE_URL}/${tenant}/storage/gcs/img/tenants/${tenant}/${type}/${cleanFilename}`;
+  // AIDEV-NOTE: Use storage_folder (db_schema) if available, otherwise fallback to tenant
+  const storageFolder = storage?.storage_folder || tenant;
+  // Proxy URL format: {API_URL}/{tenant}/storage/gcs/img/tenants/{storageFolder}/{type}/{filename}
+  return `${API_BASE_URL}/${tenant}/storage/gcs/img/tenants/${storageFolder}/${type}/${cleanFilename}`;
 }
 
 /**
@@ -219,7 +243,7 @@ export function getImageUrl(
   }
 
   // GCS ou Local: usa proxy Laravel
-  return buildProxyUrl(tenant, type, cleanFilename);
+  return buildProxyUrl(storage, tenant, type, cleanFilename);
 }
 
 /**
@@ -289,7 +313,7 @@ export async function getImageUrlWithSignedFallback(
   }
 
   // Fallback para proxy mode
-  return buildProxyUrl(tenant, type, cleanFilename);
+  return buildProxyUrl(storage, tenant, type, cleanFilename);
 }
 
 /**
@@ -361,24 +385,36 @@ export function usesSignedUrls(): boolean {
   return cachedStorageConfig?.driver === 'gcs' && cachedStorageConfig?.use_signed_urls === true;
 }
 
+// ============================================================================
+// GENERIC PUBLIC ID IMAGE FUNCTIONS
+// AIDEV-NOTE: Unified functions for entities with publicId (products, categories, etc.)
+// ============================================================================
+
 /**
- * Build product image URL using publicId (Amazon/ML style)
+ * Build image URL using publicId for any entity type
  *
- * AIDEV-NOTE: New URL pattern that doesn't expose tenant name
- * URL pattern: {base_url}/img/p/{publicId}/{index}.{ext}
- * Example: https://pub-xxx.r2.dev/img/p/01kcvqtfyrnva3akzytn3vyrz3/0.jpg
+ * AIDEV-NOTE: Generic function that handles all entity types with publicId
+ * URL pattern: {base_url}/img/{prefix}/{publicId}/{filename}
  *
- * @param publicId - Product's public_id (ULID)
+ * @param entityType - Type of entity (product, category, etc.)
+ * @param publicId - Entity's public_id (ULID)
  * @param indexOrFilename - Image index (0, 1, 2) or filename ("0.jpg")
  * @param options - Storage config options
- * @returns Full image URL
+ * @returns Full image URL or placeholder
+ *
+ * @example
+ * getPublicIdImageUrl('product', '01kcvqtf...', 0) // → img/p/01kcvqtf.../0.jpg
+ * getPublicIdImageUrl('category', '01kdtrsg...', '0.png') // → img/c/01kdtrsg.../0.png
  */
-export function getProductImageUrl(
+export function getPublicIdImageUrl(
+  entityType: ImageType,
   publicId: string | undefined | null,
   indexOrFilename: number | string,
   options?: { storageConfig?: StorageConfig | null }
 ): string {
-  if (!publicId) {
+  const prefix = ENTITY_PREFIXES[entityType];
+
+  if (!publicId || !prefix) {
     return PLACEHOLDER_IMAGE;
   }
 
@@ -390,8 +426,8 @@ export function getProductImageUrl(
     ? `${indexOrFilename}.jpg`
     : indexOrFilename;
 
-  // Build the path: p/{publicId}/{filename}
-  const imagePath = `${PRODUCT_IMAGE_PREFIX}/${publicId}/${filename}`;
+  // Build the path: {prefix}/{publicId}/{filename}
+  const imagePath = `${prefix}/${publicId}/${filename}`;
 
   // CDN has priority
   if (CDN_URL) {
@@ -406,6 +442,79 @@ export function getProductImageUrl(
 
   // Fallback to proxy (for local/GCS)
   return `${API_BASE_URL}/storage/${pathPrefix}/${imagePath}`;
+}
+
+/**
+ * Entity data interface for card image URL
+ */
+export interface EntityImageData {
+  image?: string | string[] | null;
+  publicId?: string | null;
+  public_id?: string | null; // Alternative naming (snake_case from API)
+}
+
+/**
+ * Get entity image URL for display in cards/lists (generic)
+ *
+ * AIDEV-NOTE: Handles both legacy and new image formats automatically
+ * - New format (0.jpg, 1.jpg): uses publicId-based path (img/{prefix}/{publicId}/{filename})
+ * - Legacy format (2025-xx-xx-xxx.jpg): uses tenant-based path (img/tenants/{tenant}/{type}/{filename})
+ *
+ * @param entityType - Type of entity (product, category, etc.)
+ * @param entity - Entity with image and optional publicId/public_id
+ * @param options - Storage config and tenant options
+ * @returns Image URL or placeholder
+ *
+ * @example
+ * getEntityCardImageUrl('product', product, { tenant, storageConfig })
+ * getEntityCardImageUrl('category', category, { tenant, storageConfig })
+ */
+export function getEntityCardImageUrl(
+  entityType: ImageType,
+  entity: EntityImageData,
+  options?: { storageConfig?: StorageConfig | null; tenant?: string }
+): string {
+  // Get first image (handle both array and string)
+  const imageValue = entity.image;
+  const firstImage = Array.isArray(imageValue) ? imageValue[0] : imageValue;
+
+  if (!firstImage) {
+    return PLACEHOLDER_IMAGE;
+  }
+
+  // Get publicId (handle both camelCase and snake_case)
+  const publicId = entity.publicId ?? entity.public_id;
+
+  // Check if new format (numeric filename like "0.jpg", "1.webp")
+  const isNewFormat = /^\d+\.\w+$/.test(firstImage);
+
+  if (isNewFormat && publicId && ENTITY_PREFIXES[entityType]) {
+    return getPublicIdImageUrl(entityType, publicId, firstImage, {
+      storageConfig: options?.storageConfig,
+    });
+  }
+
+  // Legacy format - use tenant-based path
+  return getImageUrl(null, entityType, firstImage, {
+    tenant: options?.tenant,
+    storageConfig: options?.storageConfig,
+  });
+}
+
+// ============================================================================
+// PRODUCT-SPECIFIC FUNCTIONS (wrappers for backward compatibility)
+// ============================================================================
+
+/**
+ * Build product image URL using publicId (Amazon/ML style)
+ * @deprecated Use getPublicIdImageUrl('product', ...) instead
+ */
+export function getProductImageUrl(
+  publicId: string | undefined | null,
+  indexOrFilename: number | string,
+  options?: { storageConfig?: StorageConfig | null }
+): string {
+  return getPublicIdImageUrl('product', publicId, indexOrFilename, options);
 }
 
 /**
@@ -448,48 +557,50 @@ export function usesLegacyImageFormat(images: (string | number)[] | undefined | 
 
 /**
  * Product image data for getProductCardImageUrl
+ * @deprecated Use EntityImageData instead
  */
-export interface ProductImageData {
-  image?: string[] | null;
-  publicId?: string | null;
-}
+export type ProductImageData = EntityImageData;
 
 /**
  * Get the first product image URL for display in cards/lists
- *
- * AIDEV-NOTE: Handles both legacy and new image formats automatically
- * - New format (0.jpg, 1.jpg): uses publicId-based path (img/p/{publicId}/{filename})
- * - Legacy format (2025-xx-xx-xxx.jpg): uses tenant-based path (img/tenants/{tenant}/product/{filename})
- *
- * @param product - Product with image array and optional publicId
- * @param options - Storage config and tenant options
- * @returns Image URL or placeholder
- *
- * @example
- * getProductCardImageUrl(product, { storageConfig: config?.storage, tenant: currentTenant })
+ * @deprecated Use getEntityCardImageUrl('product', ...) instead
  */
 export function getProductCardImageUrl(
   product: ProductImageData,
   options?: { storageConfig?: StorageConfig | null; tenant?: string }
 ): string {
-  const firstImage = product.image?.[0];
+  return getEntityCardImageUrl('product', product, options);
+}
 
-  if (!firstImage) {
-    return PLACEHOLDER_IMAGE;
-  }
+// ============================================================================
+// CATEGORY-SPECIFIC FUNCTIONS (wrappers for backward compatibility)
+// ============================================================================
 
-  // Check if new format (numeric filename like "0.jpg", "1.webp")
-  const isNewFormat = /^\d+\.\w+$/.test(firstImage);
+/**
+ * Build category image URL using publicId
+ * @deprecated Use getPublicIdImageUrl('category', ...) instead
+ */
+export function getCategoryImageUrl(
+  publicId: string | undefined | null,
+  filename: string,
+  options?: { storageConfig?: StorageConfig | null }
+): string {
+  return getPublicIdImageUrl('category', publicId, filename, options);
+}
 
-  if (isNewFormat && product.publicId) {
-    return getProductImageUrl(product.publicId, firstImage, {
-      storageConfig: options?.storageConfig,
-    });
-  }
+/**
+ * Category image data for getCategoryCardImageUrl
+ * @deprecated Use EntityImageData instead
+ */
+export type CategoryImageData = EntityImageData;
 
-  // Legacy format - use tenant-based path
-  return getImageUrl(null, 'product', firstImage, {
-    tenant: options?.tenant,
-    storageConfig: options?.storageConfig,
-  });
+/**
+ * Get category image URL for display in cards/lists
+ * @deprecated Use getEntityCardImageUrl('category', ...) instead
+ */
+export function getCategoryCardImageUrl(
+  category: CategoryImageData,
+  options?: { storageConfig?: StorageConfig | null; tenant?: string }
+): string {
+  return getEntityCardImageUrl('category', category, options);
 }

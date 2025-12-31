@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks';
 import { fetchCategories } from '@/lib/store/slices/categories.slice';
 import { fetchConfig } from '@/lib/store/slices/config.slice';
-import { getImageUrl } from '@/lib/utils/image';
+import { getCategoryCardImageUrl } from '@/lib/utils/image';
 
 export default function CategoriesPage() {
   const params = useParams();
@@ -94,7 +94,7 @@ export default function CategoriesPage() {
               <div className="relative w-full aspect-square max-w-[160px] rounded-xl overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 ring-2 ring-transparent group-hover:ring-primary/50 transition-all duration-300 shadow-md group-hover:shadow-xl group-hover:scale-105">
                 {category.image ? (
                   <Image
-                    src={getImageUrl(config.base_urls, 'category', category.image, { tenant })}
+                    src={getCategoryCardImageUrl(category, { tenant, storageConfig: config?.storage })}
                     alt={category.name}
                     fill
                     className="object-cover"

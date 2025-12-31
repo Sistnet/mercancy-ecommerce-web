@@ -27,7 +27,7 @@ import {
 } from '@/lib/store/slices/categories.slice';
 import { fetchConfig } from '@/lib/store/slices/config.slice';
 import { ProductCard } from '@/components/features/products/product-card';
-import { getImageUrl } from '@/lib/utils/image';
+import { getCategoryCardImageUrl } from '@/lib/utils/image';
 import type { Category } from '@/types/product.types';
 
 type SortOption = 'latest' | 'price_low' | 'price_high' | 'name_asc' | 'name_desc';
@@ -170,7 +170,7 @@ export default function CategoryDetailPage() {
           {selectedCategory?.image && (
             <div className="hidden md:block relative w-24 h-24 rounded-xl overflow-hidden bg-muted flex-shrink-0">
               <Image
-                src={getImageUrl(config.base_urls, 'category', selectedCategory.image, { tenant })}
+                src={getCategoryCardImageUrl(selectedCategory, { tenant, storageConfig: config?.storage })}
                 alt={selectedCategory.name}
                 fill
                 className="object-cover"
@@ -202,7 +202,7 @@ export default function CategoryDetailPage() {
                 {sub.image && (
                   <div className="relative w-6 h-6 rounded-full overflow-hidden">
                     <Image
-                      src={getImageUrl(config.base_urls, 'category', sub.image, { tenant })}
+                      src={getCategoryCardImageUrl(sub, { tenant, storageConfig: config?.storage })}
                       alt={sub.name}
                       fill
                       className="object-cover"
