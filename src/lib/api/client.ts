@@ -58,10 +58,9 @@ export const createApiClient = (): AxiosInstance => {
       const storedTenant = getStorageItem(STORAGE_KEYS.CURRENT_TENANT);
       const tenant = storedTenant || TenantResolver.resolveTenantFromHost() || DEFAULT_TENANT;
 
-      // Adiciona tenant ao path: /api/v1/config → /tenant/api/v1/config
-      if (config.url && !config.url.startsWith(`/${tenant}`)) {
-        config.url = `/${tenant}${config.url}`;
-      }
+      // AIDEV-NOTE: Tenant is sent via headers only, not in URL path
+      // The Laravel API routes are at /api/v1/... without tenant prefix
+      // Tenant context is resolved by ResolveTenantContext middleware via X-Tenant header
 
       // Headers de tenant
       config.headers[TENANT_HEADER_NAME] = tenant;

@@ -10,6 +10,8 @@ export interface StorageConfig {
   use_signed_urls: boolean;
   public_url: string | null;
   path_prefix: string;
+  /** AIDEV-NOTE: Tenant's storage folder (db_schema) for image URL construction */
+  storage_folder?: string | null;
 }
 
 // AIDEV-NOTE: White-label branding configuration from tenant settings
