@@ -70,6 +70,10 @@ export default function CanonicalProductPage() {
 
   const isInWishlist = product ? wishlistIds.includes(product.id) : false;
 
+  // AIDEV-NOTE: Support both snake_case (API) and camelCase (TypeScript) formats
+  const discountType = product?.discountType || (product as Record<string, unknown>)?.discount_type as string || 'percent';
+  const taxType = product?.taxType || (product as Record<string, unknown>)?.tax_type as string || 'percent';
+
   // Zoom lens size
   const LENS_SIZE = 100;
   const ZOOM_PANEL_SIZE = 350;
@@ -131,7 +135,7 @@ export default function CanonicalProductPage() {
     }
     let discountedPrice = basePrice;
     if (product.discount > 0) {
-      discountedPrice = product.discountType === 'percent'
+      discountedPrice = discountType === 'percent'
         ? basePrice - (basePrice * product.discount) / 100
         : basePrice - product.discount;
     }
@@ -166,9 +170,9 @@ export default function CanonicalProductPage() {
         image: product.image,
         price: product.price,
         discount: product.discount,
-        discountType: product.discountType,
+        discountType: discountType,
         tax: product.tax,
-        taxType: product.taxType,
+        taxType: taxType,
         variations: product.variations,
       },
       quantity,
@@ -264,7 +268,7 @@ export default function CanonicalProductPage() {
           <div className="relative">
             <div
               ref={imageContainerRef}
-              className="relative aspect-square bg-muted/30 rounded-2xl overflow-hidden border cursor-zoom-in"
+              className="relative aspect-square rounded-2xl overflow-hidden border cursor-zoom-in"
               onMouseMove={handleMouseMove}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
@@ -273,7 +277,7 @@ export default function CanonicalProductPage() {
                 src={imageUrl}
                 alt={product.name}
                 fill
-                className="object-contain p-4"
+                className="object-cover"
                 priority
               />
 
@@ -293,7 +297,7 @@ export default function CanonicalProductPage() {
 
               {product.discount > 0 && (
                 <Badge className="absolute top-3 left-3 bg-red-500 hover:bg-red-500 text-white font-semibold z-20">
-                  -{product.discountType === 'percent' ? `${product.discount}%` : formatPrice(product.discount)}
+                  -{discountType === 'percent' ? `${product.discount}%` : formatPrice(product.discount)}
                 </Badge>
               )}
             </div>

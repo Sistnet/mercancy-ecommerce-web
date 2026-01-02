@@ -37,9 +37,13 @@ export function ProductCard({ product }: ProductCardProps) {
   const { isOpen } = useStoreStatus();
   const { isInWishlist, toggleWishlist } = useWishlistActions(product.id);
 
+  // AIDEV-NOTE: Support both snake_case (API) and camelCase (TypeScript) formats
+  const discountType = product.discountType || (product as Record<string, unknown>).discount_type as string || 'percent';
+  const taxType = product.taxType || (product as Record<string, unknown>).tax_type as string || 'percent';
+
   // Calculate prices using utility
   const discountedPrice = hasDiscount(product.discount)
-    ? calculateDiscountedPrice(product.price, product.discount, product.discountType)
+    ? calculateDiscountedPrice(product.price, product.discount, discountType)
     : product.price;
 
   // Calculate average rating
@@ -72,9 +76,9 @@ export function ProductCard({ product }: ProductCardProps) {
         image: product.image,
         price: product.price,
         discount: product.discount,
-        discountType: product.discountType,
+        discountType: discountType,
         tax: product.tax,
-        taxType: product.taxType,
+        taxType: taxType,
         variations: product.variations,
       },
       quantity: 1,
@@ -101,35 +105,37 @@ export function ProductCard({ product }: ProductCardProps) {
       <Card className="group h-full hover:shadow-lg transition-shadow overflow-hidden">
         <CardContent className="p-0">
           {/* Image Container */}
-          {/* AIDEV-NOTE: Uses custom --product-card-bg variable for branding, falls back to muted */}
+          {/* AIDEV-NOTE: Uses aspect-square for consistent image sizes across all cards */}
           <div
-            className="relative h-[120px] sm:h-[140px] overflow-hidden"
+            className="relative aspect-square overflow-hidden"
             style={{ backgroundColor: 'var(--product-card-bg, var(--muted))' }}
           >
             <Image
               src={imageUrl}
               alt={product.name}
               fill
-              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+              className="object-cover p-2 group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 16vw"
             />
 
             {/* Discount Badge */}
             {hasDiscount(product.discount) && (
               <Badge className="absolute top-2 left-2 bg-destructive">
-                {formatDiscountBadge(product.discount, product.discountType, config)}
+                {formatDiscountBadge(product.discount, discountType, config)}
               </Badge>
             )}
 
             {/* Wishlist Button */}
+            {/* AIDEV-NOTE: Heart icon has stroke styling for better visibility on any background */}
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full h-8 w-8"
+              className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full h-8 w-8 shadow-sm"
               onClick={handleToggleWishlist}
             >
               <Heart
-                className={`h-4 w-4 ${isInWishlist ? 'fill-destructive text-destructive' : 'text-muted-foreground'}`}
+                className={`h-4 w-4 ${isInWishlist ? 'fill-destructive text-destructive' : 'text-gray-600'}`}
+                strokeWidth={2.5}
               />
             </Button>
 
@@ -149,11 +155,11 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* Product Info */}
-          <div className="p-3 space-y-2">
+          <div className="p-3 space-y-1">
             {/* Name */}
-            <h3 className="font-medium text-sm line-clamp-2 min-h-[2.5rem]">{product.name}</h3>
+            <h3 className="font-medium text-sm line-clamp-2 min-h-[2rem]">{product.name}</h3>
 
-            {/* Rating */}
+            {/* Rating - only shown if exists, with tight spacing */}
             {averageRating > 0 && (
               <div className="flex items-center space-x-1">
                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -163,13 +169,13 @@ export function ProductCard({ product }: ProductCardProps) {
               </div>
             )}
 
-            {/* Price */}
-            <div className="flex items-center space-x-2">
+            {/* Price - stacked layout when discounted */}
+            <div className="pt-0.5">
               <span className="font-bold text-primary">{formatPrice(discountedPrice, config)}</span>
               {hasDiscount(product.discount) && (
-                <span className="text-sm text-muted-foreground line-through">
+                <div className="text-xs text-muted-foreground line-through">
                   {formatPrice(product.price, config)}
-                </span>
+                </div>
               )}
             </div>
 
